@@ -24,7 +24,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const inquirer = require("inquirer");
 const _ = __importStar(require("lodash"));
-const axios_1 = __importDefault(require("axios"));
 const utils_1 = require("./utils");
 const ethers_1 = require("ethers");
 const provider_1 = require("./provider");
@@ -125,13 +124,13 @@ const openTradesOptions = async () => {
         type: "list",
         name: "selectOpenTrades",
         message: "Select a trade id",
-        choices: [...trades, "Back"]
+        choices: [...trades, "Close All", "Back"]
     };
     inquirer
         .prompt(openTradesPrompt)
         .then(async (answers) => {
         var option = answers.selectOpenTrades;
-        if (option !== "Back") {
+        if (option !== "Back" && option !== "Close All") {
             const tradeLocation = _.findIndex(openTrades, function (trade) {
                 return String(trade.tradeId) == String(option);
             });
@@ -148,6 +147,15 @@ Liquidation Price: $${utils_1.commify(liquidationPrice)}
 P&L: $${utils_1.commify(profitLoss.value)}    
 `);
             openTradeActions(openTrades[tradeLocation]);
+        }
+        else if (option == "Close All") {
+            trades;
+            console.log(`
+        Closing trades... 
+                `);
+            openTrades.map((trade) => {
+                utils_1.handleCloseTrade(trade);
+            });
         }
         else {
             listOfCoreActions();
@@ -318,37 +326,20 @@ const depositMenu = async () => {
         }, 30000);
     });
 };
-const callValidate = async (tradeData) => {
-    const exchangeData = await utils_1.getExchangeData();
-    const data = {
-        isLong: tradeData.isLong,
-        assetPrice: exchangeData.assetPrice,
-        stablePrice: exchangeData.stablePrice,
-        amount: String(tradeData.collateral),
-        leverage: String(tradeData.leverage),
-        exchangeAddress: "0x2dee540685f4dcdcf2ea10b79071ce8bd2a290ff"
-    };
-    try {
-        const req = await axios_1.default.post(`https://896isl1khc.execute-api.us-east-1.amazonaws.com/Prod/api/v1/exchange/${"0x2dee540685f4dcdcf2ea10b79071ce8bd2a290ff"}/validation/openTrade/${provider_1.wallet.address}`, JSON.stringify(data));
-        console.log(req.data);
-        return req.data;
-    }
-    catch (e) {
-        console.log(e);
-    }
-};
 const createTrade = async () => {
     inquirer.prompt(createTradeQuestions).then(async (answers) => {
         console.log("\nTrade info:");
-        const valdationValues = await callValidate(answers);
+        const valdationValues = await utils_1.callValidate(answers);
         console.log(`
-Collateral: $${answers.collateral}
-Leverage: ${answers.leverage}x
-Type: ${answers.isLong ? "Long" : "Short"}
-Asset Price: $${utils_1.commify(valdationValues.assetMarketPrice)}
-Gas Cost: $${utils_1.commify(valdationValues.gasCostValue)}
-Trade Fee: $${utils_1.commify(valdationValues.tradeFeeStable)}
-`);
+    Valid: ${valdationValues.isValid}
+    Collateral: $${utils_1.commify(valdationValues.collateralAmount)}
+    Leverage: ${answers.leverage}x
+    Type: ${valdationValues.isLong ? "Long" : "Short"}
+    Spread: ${ethers_1.utils.formatUnits(valdationValues.spreadPercentage, 18)}%
+    Asset Price: $${utils_1.commify(valdationValues.assetMarketPrice)}
+    Gas Cost: $${utils_1.commify(valdationValues.gasCostValue)}
+    Trade Fee: $${utils_1.commify(valdationValues.tradeFeeStable)}
+    `);
         createTradeConfirmation(answers);
     });
 };
@@ -357,7 +348,9 @@ const createTradeConfirmation = async (answers) => {
         .prompt(confirmTradeActions)
         .then(async (action) => {
         if (action.confirmTradeActions === "Confirm") {
-            utils_1.handleOpenTrade(answers);
+            for (var j = 0; j <= 100; j++) {
+                utils_1.handleOpenTrade(answers);
+            }
         }
         else if (action.confirmTradeActions === "Back") {
             createTrade();

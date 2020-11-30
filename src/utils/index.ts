@@ -1,7 +1,11 @@
-import { FunctionId, UserMessageEncoder, userInteractionNumberRandom } from "@fs-labs/signing-lib";
+import {
+  FunctionId,
+  UserMessageEncoder,
+  userInteractionNumberRandom
+} from "@fs-labs/signing-lib";
 import { wallet } from "../provider";
 import axios from "axios";
- import { BigNumber, utils, BigNumberish } from "ethers";
+import { BigNumber, utils, BigNumberish } from "ethers";
 import {
   assetTokenAddress,
   stableTokenAddress,
@@ -21,16 +25,15 @@ export const fromWei = utils.formatEther;
 export const toWei = utils.parseEther;
 
 export const getExchangeData = async () => {
-  try{
-  const { data } = await axios.get(
-    `${MESSAGE_PROCESSOR_API_ENDPOINT}/exchange/${exchangeAddress}`
-  );
-   return data.assetPrice;
-  }catch(e){
-    console.log(e)
-    
+  try {
+    const { data } = await axios.get(
+      `${MESSAGE_PROCESSOR_API_ENDPOINT}/exchange/${exchangeAddress}`
+    );
+    return data.assetPrice;
+  } catch (e) {
+    console.log(e);
   }
-  return 0
+  return 0;
 };
 
 export const getPoolInfo = async () => {
@@ -127,13 +130,13 @@ export const getStablePoolInfo = async (
 };
 
 export const getTransactionStatus = async (userInteractionNumber: string) => {
-  try{
-  const res = await axios.get(
-    `${CONTRACT_CALL_ENDPOINT}/?transactionId=${userInteractionNumber}`
-  );
-  return res.data;
-  }catch(e){
-    console.log(e)    
+  try {
+    const res = await axios.get(
+      `${CONTRACT_CALL_ENDPOINT}/?transactionId=${userInteractionNumber}`
+    );
+    return res.data;
+  } catch (e) {
+    console.log(e);
   }
 };
 
@@ -217,23 +220,22 @@ export const getClosedTrades = async () => {
 
 export const commify = (bN: any) => {
   const formattedNumber = utils.commify(fromWei(bN));
-   return formattedNumber.slice(0, formattedNumber.indexOf(".") + 3);
+  return formattedNumber.slice(0, formattedNumber.indexOf(".") + 3);
 };
 
 export const getWalletTokenBalance = async () => {
   const walletInstance = getWalletInstance();
 
-  try{
-  const stableBalance = await walletInstance.balanceOf(
-    stableTokenAddress,
-    wallet.address
-  );
-  return stableBalance;
-  }catch(e){
-    console.log(e)
+  try {
+    const stableBalance = await walletInstance.balanceOf(
+      stableTokenAddress,
+      wallet.address
+    );
+    return stableBalance;
+  } catch (e) {
+    console.log(e);
   }
   return 0;
-
 };
 
 export const fsWalletDespoit = async (amount: number) => {
@@ -260,7 +262,7 @@ export const handleOpenTrade = async ({
     exchangeAddress,
     assetPriceBound: toBn("0"),
     stablePriceBound: toBn("0"),
-    userInteractionNumber: toBn(userInteractionNumberRandom()), 
+    userInteractionNumber: toBn(userInteractionNumberRandom()),
     gasStableBound: toBn("0"),
     minTransmitterGas: toWei("0"),
     collateral: toBn(String(toWei(String(collateral)))),
@@ -282,7 +284,11 @@ export const handleOpenTrade = async ({
     functionId
   });
   try {
-    const { data } = await axios.put(CONTRACT_CALL_ENDPOINT, payload);
+    // const { data } = await axios.put(
+    //   `${CONTRACT_CALL_ENDPOINT}?assetPriceOverwrite=650000000000000000000`,
+    //   payload
+    // );
+    const { data } = await axios.put(`${CONTRACT_CALL_ENDPOINT}`, payload);
     console.log("\n");
     console.log(data);
     return data;
@@ -412,6 +418,26 @@ export const handleInstantWithdrawal = async (amount: any) => {
     const res = await axios.put(CONTRACT_CALL_ENDPOINT, payload);
     console.log(res.data);
     return res.data;
+  } catch (e) {
+    console.log(e);
+  }
+};
+
+export const callValidate = async (tradeData: any) => {
+  const data = {
+    isLong: tradeData.isLong,
+    collateralAmount: String(toWei(String(tradeData.collateral))),
+    assetAmount: "0",
+    leverage: String(tradeData.leverage),
+    exchangeAddress
+  };
+
+  try {
+    const req = await axios.post(
+      `${MESSAGE_PROCESSOR_API_ENDPOINT}/exchange/${exchangeAddress}/validation/openTrade/${wallet.address}`,
+      JSON.stringify(data)
+    );
+    return req.data;
   } catch (e) {
     console.log(e);
   }

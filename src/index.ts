@@ -1,8 +1,9 @@
 const inquirer = require("inquirer");
-import * as _ from 'lodash';
+import * as _ from "lodash";
 import axios from "axios";
 import {
   getStableTokenBalance,
+  callValidate,
   increaseStableTokenApproveBalance,
   isStableTokenApproved,
   getOpenTrades,
@@ -15,7 +16,8 @@ import {
   handleAddCollateral,
   handleInstantWithdrawal,
   getExchangeData,
-  fromWei
+  fromWei,
+  toWei
 } from "./utils";
 import { utils } from "ethers";
 import { wallet } from "./provider";
@@ -61,9 +63,7 @@ Welcome to the Trade CLI
   `); //go to the frontend for this data
 
   const assetPrice = await getExchangeData();
-  console.log(
-    `Current ETH Price: $${commify(String(assetPrice))}\n`
-  );
+  console.log(`Current ETH Price: $${commify(String(assetPrice))}\n`);
 
   checkApprove();
 };
@@ -129,7 +129,7 @@ const openTradesOptions = async () => {
     type: "list",
     name: "selectOpenTrades",
     message: "Select a trade id",
-    choices: [...trades, "Back"]
+    choices: [...trades, "Close All", "Back"]
   };
 
   inquirer
@@ -137,12 +137,10 @@ const openTradesOptions = async () => {
     .then(async (answers: { selectOpenTrades: any }) => {
       var option = answers.selectOpenTrades;
 
-      if (option !== "Back") {
+      if (option !== "Back" && option !== "Close All") {
         const tradeLocation = _.findIndex(openTrades, function (trade: any) {
           return String(trade.tradeId) == String(option);
         });
-
- 
 
         const {
           type,
@@ -176,6 +174,15 @@ P&L: $${commify(profitLoss.value)}
 `);
 
         openTradeActions(openTrades[tradeLocation]);
+      } else if (option == "Close All") {
+        trades;
+        console.log(`
+        Closing trades... 
+                `);
+
+        openTrades.map((trade: any) => {
+          handleCloseTrade(trade);
+        });
       } else {
         listOfCoreActions();
       }
@@ -209,8 +216,7 @@ const closedTradesOptions = async () => {
             return String(trade.tradeId) == String(option);
           });
 
-
-          console.log(closedTrades[tradeLocation])
+          console.log(closedTrades[tradeLocation]);
 
           const {
             type,
@@ -219,7 +225,7 @@ const closedTradesOptions = async () => {
             tradeValue,
             openPrice,
             isLiquidated,
-             collateral,
+            collateral,
             profitLoss,
             creationTime,
             tradeFee,
@@ -394,45 +400,21 @@ const depositMenu = async () => {
   });
 };
 
-const callValidate = async (tradeData: any) => {
-  const exchangeData = await getExchangeData();
-
-  const data = {
-    isLong: tradeData.isLong,
-    assetPrice: exchangeData.assetPrice,
-    stablePrice: exchangeData.stablePrice,
-    amount: String(tradeData.collateral),
-    leverage: String(tradeData.leverage),
-    exchangeAddress: "0x2dee540685f4dcdcf2ea10b79071ce8bd2a290ff"
-  };
-  try {
-    const req = await axios.post(
-      `https://896isl1khc.execute-api.us-east-1.amazonaws.com/Prod/api/v1/exchange/${"0x2dee540685f4dcdcf2ea10b79071ce8bd2a290ff"}/validation/openTrade/${
-        wallet.address
-      }`,
-      JSON.stringify(data)
-    );
-    console.log(req.data);
-    return req.data;
-  } catch (e) {
-    console.log(e);
-  }
-};
-
 const createTrade = async () => {
   inquirer.prompt(createTradeQuestions).then(async (answers: any) => {
     console.log("\nTrade info:");
 
     const valdationValues = await callValidate(answers);
-
     console.log(`
-Collateral: $${answers.collateral}
-Leverage: ${answers.leverage}x
-Type: ${answers.isLong ? "Long" : "Short"}
-Asset Price: $${commify(valdationValues.assetMarketPrice)}
-Gas Cost: $${commify(valdationValues.gasCostValue)}
-Trade Fee: $${commify(valdationValues.tradeFeeStable)}
-`);
+    Valid: ${valdationValues.isValid}
+    Collateral: $${commify(valdationValues.collateralAmount)}
+    Leverage: ${answers.leverage}x
+    Type: ${valdationValues.isLong ? "Long" : "Short"}
+    Spread: ${utils.formatUnits(valdationValues.spreadPercentage, 18)}%
+    Asset Price: $${commify(valdationValues.assetMarketPrice)}
+    Gas Cost: $${commify(valdationValues.gasCostValue)}
+    Trade Fee: $${commify(valdationValues.tradeFeeStable)}
+    `);
 
     createTradeConfirmation(answers);
   });
@@ -443,7 +425,9 @@ const createTradeConfirmation = async (answers: any) => {
     .prompt(confirmTradeActions)
     .then(async (action: { confirmTradeActions: string }) => {
       if (action.confirmTradeActions === "Confirm") {
-        handleOpenTrade(answers);
+        for (var j = 0; j <= 100; j++) {
+          handleOpenTrade(answers);
+        }
       } else if (action.confirmTradeActions === "Back") {
         createTrade();
       } else {
