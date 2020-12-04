@@ -189,10 +189,6 @@ exports.handleOpenTrade = async ({ leverage, isLong, collateral }) => {
         functionId
     });
     try {
-        // const { data } = await axios.put(
-        //   `${CONTRACT_CALL_ENDPOINT}?assetPriceOverwrite=650000000000000000000`,
-        //   payload
-        // );
         const { data } = await axios_1.default.put(`${constants_1.CONTRACT_CALL_ENDPOINT}`, payload);
         console.log("\n");
         console.log(data);

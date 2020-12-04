@@ -124,13 +124,13 @@ const openTradesOptions = async () => {
         type: "list",
         name: "selectOpenTrades",
         message: "Select a trade id",
-        choices: [...trades, "Close All", "Back"]
+        choices: [...trades, "Batch close trades", "Back"]
     };
     inquirer
         .prompt(openTradesPrompt)
         .then(async (answers) => {
         var option = answers.selectOpenTrades;
-        if (option !== "Back" && option !== "Close All") {
+        if (option !== "Back" && option !== "Batch close trades") {
             const tradeLocation = _.findIndex(openTrades, function (trade) {
                 return String(trade.tradeId) == String(option);
             });
@@ -148,12 +148,13 @@ P&L: $${utils_1.commify(profitLoss.value)}
 `);
             openTradeActions(openTrades[tradeLocation]);
         }
-        else if (option == "Close All") {
+        else if (option == "Batch close trades") {
             trades;
             console.log(`
         Closing trades... 
                 `);
-            openTrades.map((trade) => {
+            let tradeArrayReduced = openTrades.slice(0, 50);
+            tradeArrayReduced.map((trade) => {
                 utils_1.handleCloseTrade(trade);
             });
         }
@@ -348,9 +349,7 @@ const createTradeConfirmation = async (answers) => {
         .prompt(confirmTradeActions)
         .then(async (action) => {
         if (action.confirmTradeActions === "Confirm") {
-            for (var j = 0; j <= 100; j++) {
-                utils_1.handleOpenTrade(answers);
-            }
+            utils_1.handleOpenTrade(answers);
         }
         else if (action.confirmTradeActions === "Back") {
             createTrade();
