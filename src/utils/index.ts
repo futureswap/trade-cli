@@ -284,10 +284,6 @@ export const handleOpenTrade = async ({
     functionId
   });
   try {
-    // const { data } = await axios.put(
-    //   `${CONTRACT_CALL_ENDPOINT}?assetPriceOverwrite=650000000000000000000`,
-    //   payload
-    // );
     const { data } = await axios.put(`${CONTRACT_CALL_ENDPOINT}`, payload);
     console.log("\n");
     console.log(data);
