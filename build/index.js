@@ -265,7 +265,7 @@ const withdrawMenu = async () => {
         setTimeout(() => {
             clearInterval(loadingUi);
             uiBottom.updateBottomBar("");
-            console.log("\nSuccess!\n");
+            // console.log("\nSuccess!\n");
             listOfCoreActions();
         }, 10000);
     });
