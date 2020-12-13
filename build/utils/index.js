@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.callValidate = exports.handleInstantWithdrawal = exports.handleAddCollateral = exports.handleCloseTrade = exports.handleOpenTrade = exports.closeDisableTrade = exports.fsWalletDespoit = exports.getWalletTokenBalance = exports.commify = exports.getClosedTrades = exports.getOpenTrades = exports.isStableTokenApproved = exports.increaseStableTokenApproveBalance = exports.getStableTokenBalance = exports.getAssetTokenBalance = exports.getPoolImbalance = exports.getTransactionStatus = exports.getStablePoolInfo = exports.getAssetPoolInfo = exports.getPoolInfo = exports.getExchangeData = exports.toWei = exports.fromWei = exports.toBn = void 0;
+exports.callValidate = exports.handleInstantWithdrawal = exports.handleAddCollateral = exports.handleCloseTrade = exports.handleOpenTrade = exports.fsWalletDespoit = exports.getWalletTokenBalance = exports.commify = exports.getClosedTrades = exports.getOpenTrades = exports.isStableTokenApproved = exports.increaseStableTokenApproveBalance = exports.getStableTokenBalance = exports.getAssetTokenBalance = exports.getPoolImbalance = exports.getTransactionStatus = exports.getStablePoolInfo = exports.getAssetPoolInfo = exports.getPoolInfo = exports.getExchangeData = exports.toWei = exports.fromWei = exports.toBn = void 0;
 const signing_lib_1 = require("@fs-labs/signing-lib");
 const provider_1 = require("../provider");
 const axios_1 = __importDefault(require("axios"));
@@ -164,23 +164,6 @@ exports.fsWalletDespoit = async (amount) => {
     const safeAmountToTransfer = ethers_1.utils.parseUnits(String(amount), decimals);
     await walletInstance.deposit(constants_1.stableTokenAddress, safeAmountToTransfer);
 };
-exports.closeDisableTrade = async (trade) => {
-    try {
-        const tx = await Exchange_1.exchangeInstance.closeDisabledTrade(trade, {
-            gasPrice: 20000000000,
-            gasLimit: 189135
-        });
-        console.log("!");
-        console.log("send and waiting...");
-        let receipt = await tx.wait(6);
-        console.log("!!!");
-        console.log(receipt);
-    }
-    catch (e) {
-        console.log("failed");
-        console.log(e);
-    }
-};
 exports.handleOpenTrade = async ({ leverage, isLong, collateral }) => {
     const functionId = isLong
         ? signing_lib_1.FunctionId.OPEN_LONG_ID
@@ -206,8 +189,7 @@ exports.handleOpenTrade = async ({ leverage, isLong, collateral }) => {
         functionId
     });
     try {
-        // const { data } = await axios.put(`${CONTRACT_CALL_ENDPOINT}`, payload);
-        const { data } = await axios_1.default.put(constants_1.CONTRACT_CALL_ENDPOINT + "?assetPriceOverwrite=480000000000000000000", payload);
+        const { data } = await axios_1.default.put(`${constants_1.CONTRACT_CALL_ENDPOINT}`, payload);
         console.log("\n");
         console.log(data);
         return data;
