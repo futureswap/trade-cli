@@ -16,8 +16,7 @@ import {
   handleAddCollateral,
   handleInstantWithdrawal,
   getExchangeData,
-  fromWei,
-  toWei
+  fromWei
 } from "./utils";
 import { utils } from "ethers";
 import { wallet } from "./provider";
@@ -37,7 +36,8 @@ const coreActionList = {
     "Open trade",
     "Withdraw",
     "Deposit",
-    "Refresh"
+    "Refresh",
+    "Terms"
   ]
 };
 
@@ -65,13 +65,12 @@ Welcome to the Trade CLI
   const assetPrice = await getExchangeData();
   console.log(`Current ETH Price: $${commify(String(assetPrice))}\n`);
 
-  checkApprove();
+  checkTerms();
 };
 main();
 
 const checkApprove = async () => {
   const isApproved = await isStableTokenApproved();
-
   if (isApproved) {
     listOfCoreActions();
   } else {
@@ -110,6 +109,8 @@ const listOfCoreActions = async () => {
         withdrawMenu();
       } else if (answers.coreAction === "Deposit") {
         depositMenu();
+      } else if (answers.coreAction === "Terms") {
+        getTerms();
       } else if (answers.coreAction === "Refresh") {
         main();
       } else {
@@ -399,6 +400,94 @@ const depositMenu = async () => {
       listOfCoreActions();
     }, 30000);
   });
+};
+
+const checkTerms = async () => {
+  //check if they have agree to the terms
+
+  let actions;
+  try {
+    const { data } = await axios.get(
+      `https://api.dev.futureswap.gg/prod/api/v1/allowedactions/${wallet.address}`
+    );
+    actions = data;
+  } catch (e) {
+    console.log("could not fetch actions");
+    return false;
+  }
+  if (actions.allowedActions.length > 0 && actions.agreedToTerms) {
+    checkApprove();
+    return;
+  }
+
+  let terms;
+  try {
+    const { data } = await axios.get(
+      "https://api.dev.futureswap.gg/prod/api/v1/terms"
+    );
+    terms = data;
+  } catch (e) {
+    console.log("could not fetch terms, contact support");
+    console.log(e);
+    return;
+  }
+  console.log(terms);
+
+  inquirer
+    .prompt({
+      type: "list",
+      name: "action",
+      message: "Select an action",
+      choices: ["Agree", "Disagree"]
+    })
+    .then(async (answers: { action: any }) => {
+      var option = answers.action;
+
+      if (option === "Agree") {
+        try {
+          const { data } = await axios.put(
+            "https://api.dev.futureswap.gg/prod/api/v1/terms",
+            {
+              userAddress: wallet.address,
+              agreesToTerms: true
+            }
+          );
+
+          console.log("You agreed to the terms. ");
+          checkApprove();
+        } catch (e) {
+          console.log("Failed submitting terms request");
+        }
+        return true;
+      } else if (option === "Disagree") {
+        const { data } = await axios.put(
+          "https://api.dev.futureswap.gg/prod/api/v1/terms",
+          {
+            userAddress: wallet.address,
+            agreesToTerms: false
+          }
+        );
+        console.log(
+          "You did not agree to the terms. You cannot use this product"
+        );
+        return false;
+      }
+    });
+};
+
+const getTerms = async () => {
+  let terms;
+  try {
+    const { data } = await axios.get(
+      "https://api.dev.futureswap.gg/prod/api/v1/terms"
+    );
+    terms = data;
+  } catch (e) {
+    console.log("could not fetch terms, contact support");
+    console.log(e);
+    return;
+  }
+  console.log(terms);
 };
 
 const createTrade = async () => {
